@@ -3,6 +3,8 @@ FROM debian:bullseye-slim
 WORKDIR /
 ARG DEBIAN_FRONTEND=noninteractive
 ENV VCPKG_FORCE_SYSTEM_BINARIES=1
+RUN sed -i "s|deb.debian.org|mirrors.aliyun.com|g" /etc/apt/sources.list && \
+    sed -i "s|security.debian.org|mirrors.aliyun.com|g" /etc/apt/sources.list
 RUN apt update -y && \
     apt install --yes --no-install-recommends \
         g++ \
@@ -54,11 +56,20 @@ WORKDIR /home/user
 RUN curl -LO https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.lnx/x64/libsciter-gtk.so
 
 USER user
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh && \
-    chmod +x rustup.sh && \
-    ./rustup.sh -y
+RUN mkdir -p /root/.cargo && \
+    echo '[source.crates-io]' > /root/.cargo/config && \
+    echo 'replace-with = "sjtu"' >> /root/.cargo/config && \
+    echo '' >> /root/.cargo/config && \
+    echo '[source.sjtu]' >> /root/.cargo/config && \
+    echo 'registry = "https://mirrors.sjtug.sjtu.edu.cn/git/crates.io-index"' >> /root/.cargo/config && \
+    echo '' >> /root/.cargo/config && \
+    echo '[net]' >> /root/.cargo/config && \
+    echo 'git-fetch-with-cli = true' >> /root/.cargo/config
 
 USER root
+ENV http_proxy=http://host:port
+ENV https_proxy=http://host:port
+
 ENV HOME=/home/user
 COPY ./entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]
